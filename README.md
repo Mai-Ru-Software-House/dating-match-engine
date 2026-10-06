@@ -161,16 +161,16 @@ A candidate pair $(A, B)$ must satisfy all three criteria mutually:
 
 1. **Gender**:
    $$
-   \operatorname{gender}(B) \in \operatorname{targetGenders}(A) \quad \land \quad \operatorname{gender}(A) \in \operatorname{targetGenders}(B)
+   \text{gender}(B) \in \text{targetGenders}(A) \quad \land \quad \text{gender}(A) \in \text{targetGenders}(B)
    $$
    *(Genders are configurable string tokens and never hardcoded).*
 2. **Age**:
    $$
-   \operatorname{age}_{\min}(A) \le \operatorname{age}(B) \le \operatorname{age}_{\max}(A) \quad \land \quad \operatorname{age}_{\min}(B) \le \operatorname{age}(A) \le \operatorname{age}_{\max}(B)
+   \text{age}_{\min}(A) \le \text{age}(B) \le \text{age}_{\max}(A) \quad \land \quad \text{age}_{\min}(B) \le \text{age}(A) \le \text{age}_{\max}(B)
    $$
 3. **Distance**:
    $$
-   \operatorname{distance}(A, B) \le \operatorname{radius}(A) \quad \land \quad \operatorname{distance}(A, B) \le \operatorname{radius}(B)
+   \text{distance}(A, B) \le \text{radius}(A) \quad \land \quad \text{distance}(A, B) \le \text{radius}(B)
    $$
    *(Computed using the great-circle Haversine formula).*
 
@@ -183,19 +183,19 @@ The scoring model is bidirectional, explainable, and tunable:
 ### 1. Age Compatibility ($A \to B$)
 
 $$
-\mu_A = \frac{\operatorname{age}_{\min}(A) + \operatorname{age}_{\max}(A)}{2}
+\mu_A = \frac{\text{age}_{\min}(A) + \text{age}_{\max}(A)}{2}
 $$
 
 $$
-S_{\text{age}}(A, B) = \exp\left( -\frac{(\operatorname{age}(B) - \mu_A)^2}{2 \sigma_A^2} \right)
+S_{\text{age}}(A, B) = \exp\left( -\frac{(\text{age}(B) - \mu_A)^2}{2 \sigma_A^2} \right)
 $$
 
-where $\sigma_A = \frac{\operatorname{age}_{\max}(A) - \operatorname{age}_{\min}(A)}{2}$ (or fallback `DEFAULT_AGE_SIGMA`).
+where $\sigma_A = \frac{\text{age}_{\max}(A) - \text{age}_{\min}(A)}{2}$ (or fallback `DEFAULT_AGE_SIGMA`).
 
 ### 2. Distance Compatibility ($A \to B$)
 
 $$
-S_{\text{distance}}(A, B) = \exp\left( -\left(\frac{\operatorname{distance}(A, B)}{\operatorname{radius}(A)}\right)^2 \right)
+S_{\text{distance}}(A, B) = \exp\left( -\left(\frac{\text{distance}(A, B)}{\text{radius}(A)}\right)^2 \right)
 $$
 
 ### 3. Directional Compatibility
