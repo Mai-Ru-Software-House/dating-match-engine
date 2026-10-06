@@ -160,13 +160,19 @@ Content-Type: application/json
 A candidate pair $(A, B)$ must satisfy all three criteria mutually:
 
 1. **Gender**:
-   $$B.\text{gender} \in A.\text{target\_gender} \quad \text{AND} \quad A.\text{gender} \in B.\text{target\_gender}$$
+   $$
+   \operatorname{gender}(B) \in \operatorname{targetGenders}(A) \quad \land \quad \operatorname{gender}(A) \in \operatorname{targetGenders}(B)
+   $$
    *(Genders are configurable string tokens and never hardcoded).*
 2. **Age**:
-   $$A.\text{age\_min} \le B.\text{age} \le A.\text{age\_max} \quad \text{AND} \quad B.\text{age\_min} \le A.\text{age} \le B.\text{age\_max}$$
+   $$
+   \operatorname{age}_{\min}(A) \le \operatorname{age}(B) \le \operatorname{age}_{\max}(A) \quad \land \quad \operatorname{age}_{\min}(B) \le \operatorname{age}(A) \le \operatorname{age}_{\max}(B)
+   $$
 3. **Distance**:
-   $$\text{distance}(A, B) \le A.\text{radius\_km} \quad \text{AND} \quad \text{distance}(A, B) \le B.\text{radius\_km}$$
-   *(Computed using the Haversine formula).*
+   $$
+   \operatorname{distance}(A, B) \le \operatorname{radius}(A) \quad \land \quad \operatorname{distance}(A, B) \le \operatorname{radius}(B)
+   $$
+   *(Computed using the great-circle Haversine formula).*
 
 ---
 
@@ -176,19 +182,27 @@ The scoring model is bidirectional, explainable, and tunable:
 
 ### 1. Age Compatibility ($A \to B$)
 
-$$\mu_A = \frac{\text{age\_min}_A + \text{age\_max}_A}{2}$$
+$$
+\mu_A = \frac{\operatorname{age}_{\min}(A) + \operatorname{age}_{\max}(A)}{2}
+$$
 
-$$\text{age\_score}(A, B) = \exp\left( -\frac{(\text{age}_B - \mu_A)^2}{2 \sigma_A^2} \right)$$
+$$
+S_{\text{age}}(A, B) = \exp\left( -\frac{(\operatorname{age}(B) - \mu_A)^2}{2 \sigma_A^2} \right)
+$$
 
-where $\sigma_A = \frac{\text{age\_max}_A - \text{age\_min}_A}{2}$ (or fallback `DEFAULT_AGE_SIGMA`).
+where $\sigma_A = \frac{\operatorname{age}_{\max}(A) - \operatorname{age}_{\min}(A)}{2}$ (or fallback `DEFAULT_AGE_SIGMA`).
 
 ### 2. Distance Compatibility ($A \to B$)
 
-$$\text{distance\_score}(A, B) = \exp\left( -\left(\frac{\text{distance}(A, B)}{\text{radius}_A}\right)^2 \right)$$
+$$
+S_{\text{distance}}(A, B) = \exp\left( -\left(\frac{\operatorname{distance}(A, B)}{\operatorname{radius}(A)}\right)^2 \right)
+$$
 
 ### 3. Directional Compatibility
 
-$$C_{A \to B} = w_{\text{age}} \cdot \text{age\_score}(A, B) + w_{\text{distance}} \cdot \text{distance\_score}(A, B)$$
+$$
+C_{A \to B} = w_{\text{age}} \cdot S_{\text{age}}(A, B) + w_{\text{distance}} \cdot S_{\text{distance}}(A, B)
+$$
 
 with default weights:
 * $w_{\text{age}} = 0.7$
@@ -198,7 +212,9 @@ The same symmetric calculation is performed for $C_{B \to A}$.
 
 ### 4. Mutual Match Score
 
-$$\text{match\_score}(A, B) = 100 \times \sqrt{C_{A \to B} \cdot C_{B \to A}}$$
+$$
+S_{\text{match}}(A, B) = 100 \times \sqrt{C_{A \to B} \cdot C_{B \to A}}
+$$
 
 Bounded within $[0, 100]$. The geometric mean ensures that strong compatibility on one side cannot mask poor compatibility on the other.
 
