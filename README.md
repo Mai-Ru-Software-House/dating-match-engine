@@ -267,8 +267,8 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ### Using Docker
 
 ```bash
-docker build -t dating-match-engine:dev .
-docker run -p 8000:8000 --env-file .env.example dating-match-engine:dev
+docker build -t ghcr.io/mai-ru-software-house/dating-match-engine:dev .
+docker run -p 8000:8000 --env-file .env.example ghcr.io/mai-ru-software-house/dating-match-engine:dev
 ```
 
 ### Standalone Testing with Mock Backend

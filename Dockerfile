@@ -7,13 +7,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000 \
     HOST=0.0.0.0
 
-# Install build dependencies if needed, then install project dependencies
-COPY pyproject.toml .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir .
+# Copy project definition and readme required by hatchling build backend
+COPY pyproject.toml README.md ./
 
 # Copy application source code
 COPY app/ ./app/
+
+# Install dependencies and project package
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir .
 
 # Expose internal service port
 EXPOSE 8000
