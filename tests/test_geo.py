@@ -20,10 +20,10 @@ def test_haversine_identical_points() -> None:
 def test_haversine_symmetry() -> None:
     """Distance from A to B must equal distance from B to A."""
     # Geographic distance is symmetric regardless of traversal direction
-    lat1, lon1 = 13.7563, 100.5018
-    lat2, lon2 = 18.7883, 98.9853
-    dist_ab = haversine_distance(lat1, lon1, lat2, lon2)
-    dist_ba = haversine_distance(lat2, lon2, lat1, lon1)
+    bkk_lat, bkk_lon = 13.7563, 100.5018
+    cnx_lat, cnx_lon = 18.7883, 98.9853
+    dist_ab = haversine_distance(bkk_lat, bkk_lon, cnx_lat, cnx_lon)
+    dist_ba = haversine_distance(cnx_lat, cnx_lon, bkk_lat, bkk_lon)
     assert pytest.approx(dist_ab, rel=1e-5) == dist_ba
 
 

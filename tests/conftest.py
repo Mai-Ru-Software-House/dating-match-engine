@@ -3,7 +3,8 @@ Shared Test Fixtures: provides reusable profile models and HTTP clients
 for testing the Match Engine matching logic, scoring, and internal API routes.
 """
 
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterator
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -158,3 +159,32 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
+
+
+@pytest.fixture
+def sample_candidate_c1() -> CandidateProfile:
+    """Fixture providing a minimal candidate without preferences for search tests."""
+    return CandidateProfile(
+        user_id="c1",
+        age=22,
+        gender="G1",
+        latitude=13.7600,
+        longitude=100.5100,
+    )
+
+
+@pytest.fixture
+def mock_matching_pool(request: pytest.FixtureRequest) -> Iterator[AsyncMock]:
+    """Fixture patching the backend matching-pool query to return user A and B.
+
+    Tests may override the outcome by setting `side_effect` on the yielded mock.
+    """
+    with patch(
+        "app.services.backend_client.BackendClient.get_matching_pool",
+        new_callable=AsyncMock,
+    ) as mock_get_pool:
+        mock_get_pool.return_value = (
+            request.getfixturevalue("sample_user_a"),
+            [request.getfixturevalue("sample_candidate_b")],
+        )
+        yield mock_get_pool

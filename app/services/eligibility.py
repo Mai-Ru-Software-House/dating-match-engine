@@ -45,9 +45,9 @@ def is_mutually_eligible(
     # 2. Age mutual compatibility
     assert user_a.age is not None
     assert user_b.age is not None
-    if not (pref_a.age_min <= user_b.age <= pref_a.age_max):
-        return False, 0.0
-    if not (pref_b.age_min <= user_a.age <= pref_b.age_max):
+    a_accepts_b = pref_a.age_min <= user_b.age <= pref_a.age_max
+    b_accepts_a = pref_b.age_min <= user_a.age <= pref_b.age_max
+    if not a_accepts_b or not b_accepts_a:
         return False, 0.0
 
     # 3. Distance mutual compatibility

@@ -3,13 +3,14 @@ Recommendation Endpoints & Service Tests: validates ranking, limits,
 error handling, and direct payload processing on /internal/v1/recommendations.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 
 from app.models.profile import CandidateProfile, UserMatchingProfile
 from app.services.matching import MatchingService
+from tests.helpers import assert_single_candidate, build_push_payload
 
 
 def test_ranking_descending_and_limit(
@@ -56,18 +57,9 @@ async def test_post_recommendations_direct_payload(
 ) -> None:
     """POST /internal/v1/recommendations with direct user and candidates payload."""
     # Push mode: Elysia backend provides profiles directly, avoiding extra query
-    payload = {
-        "user_id": sample_user_a.user_id,
-        "limit": 10,
-        "user": sample_user_a.model_dump(mode="json"),
-        "candidates": [sample_candidate_b.model_dump(mode="json")],
-    }
+    payload = build_push_payload(sample_user_a, sample_candidate_b, limit=10)
     response = await async_client.post("/internal/v1/recommendations", json=payload)
-    assert response.status_code == 200
-    data = response.json()
-    assert "candidates" in data
-    assert len(data["candidates"]) == 1
-    assert data["candidates"][0]["user_id"] == "user_b"
+    data = assert_single_candidate(response, "user_b")
     assert 0.0 <= data["candidates"][0]["match_score"] <= 100.0
     # Feature 1 response must also include geographic distance in kilometers
     assert "distance_km" in data["candidates"][0]
@@ -78,67 +70,53 @@ async def test_post_recommendations_direct_payload(
 async def test_get_recommendations_endpoint_success(
     async_client: httpx.AsyncClient,
     sample_user_a: UserMatchingProfile,
-    sample_candidate_b: CandidateProfile,
+    mock_matching_pool: AsyncMock,
 ) -> None:
     """GET /internal/v1/recommendations computes candidate recommendation scores."""
     # Pull mode: engine queries backend DAL at /internal/v1/matching-pool
-    with patch(
-        "app.services.backend_client.BackendClient.get_matching_pool",
-        new_callable=AsyncMock,
-    ) as mock_get_pool:
-        mock_get_pool.return_value = (sample_user_a, [sample_candidate_b])
-
-        response = await async_client.get(
-            f"/internal/v1/recommendations?user_id={sample_user_a.user_id}&limit=5"
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data["candidates"]) == 1
-        assert data["candidates"][0]["user_id"] == "user_b"
-        assert isinstance(data["candidates"][0]["match_score"], float)
-        assert "distance_km" in data["candidates"][0]
-        assert data["candidates"][0]["distance_km"] > 0.0
+    response = await async_client.get(
+        f"/internal/v1/recommendations?user_id={sample_user_a.user_id}&limit=5"
+    )
+    data = assert_single_candidate(response, "user_b")
+    mock_matching_pool.assert_awaited_once()
+    assert isinstance(data["candidates"][0]["match_score"], float)
+    assert "distance_km" in data["candidates"][0]
+    assert data["candidates"][0]["distance_km"] > 0.0
 
 
 @pytest.mark.asyncio
 async def test_get_recommendations_backend_404(
     async_client: httpx.AsyncClient,
+    mock_matching_pool: AsyncMock,
 ) -> None:
     """When backend returns 404 for unknown user, endpoint returns 404."""
-    with patch(
-        "app.services.backend_client.BackendClient.get_matching_pool",
-        new_callable=AsyncMock,
-    ) as mock_get_pool:
-        mock_response = httpx.Response(
-            status_code=404, request=httpx.Request("GET", "http://backend")
-        )
-        mock_get_pool.side_effect = httpx.HTTPStatusError(
-            message="Not found",
-            request=mock_response.request,
-            response=mock_response,
-        )
+    mock_response = httpx.Response(
+        status_code=404, request=httpx.Request("GET", "http://backend")
+    )
+    mock_matching_pool.side_effect = httpx.HTTPStatusError(
+        message="Not found",
+        request=mock_response.request,
+        response=mock_response,
+    )
 
-        response = await async_client.get(
-            "/internal/v1/recommendations?user_id=unknown_user"
-        )
-        assert response.status_code == 404
-        assert "not found" in response.json()["error"]["message"].lower()
+    response = await async_client.get(
+        "/internal/v1/recommendations?user_id=unknown_user"
+    )
+    assert response.status_code == 404
+    assert "not found" in response.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio
 async def test_get_recommendations_backend_unreachable(
     async_client: httpx.AsyncClient,
+    mock_matching_pool: AsyncMock,
 ) -> None:
     """When backend connection fails, endpoint returns 502 Bad Gateway."""
-    with patch(
-        "app.services.backend_client.BackendClient.get_matching_pool",
-        new_callable=AsyncMock,
-    ) as mock_get_pool:
-        mock_get_pool.side_effect = httpx.ConnectError("Connection refused")
+    mock_matching_pool.side_effect = httpx.ConnectError("Connection refused")
 
-        response = await async_client.get("/internal/v1/recommendations?user_id=user_a")
-        assert response.status_code == 502
-        assert "failed to connect" in response.json()["error"]["message"].lower()
+    response = await async_client.get("/internal/v1/recommendations?user_id=user_a")
+    assert response.status_code == 502
+    assert "failed to connect" in response.json()["error"]["message"].lower()
 
 
 @pytest.mark.asyncio
@@ -159,12 +137,6 @@ async def test_recommendations_with_large_limit(
 ) -> None:
     """Limits above the former 100 ceiling are supported without validation errors."""
     # Backend Prisma DAL controls batch sizing, Match Engine does not artificially cap
-    payload = {
-        "user_id": sample_user_a.user_id,
-        "limit": 250,
-        "user": sample_user_a.model_dump(mode="json"),
-        "candidates": [sample_candidate_b.model_dump(mode="json")],
-    }
+    payload = build_push_payload(sample_user_a, sample_candidate_b, limit=250)
     response = await async_client.post("/internal/v1/recommendations", json=payload)
-    assert response.status_code == 200
-    assert len(response.json()["candidates"]) == 1
+    assert_single_candidate(response, "user_b")

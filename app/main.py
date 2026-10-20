@@ -21,11 +21,11 @@ app = FastAPI(
 
 
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+async def http_exception_handler(_request: Request, exc: HTTPException) -> JSONResponse:
     """Format HTTP exceptions into standard Mai Ru error response shape.
 
     Args:
-        request: The incoming request.
+        _request: The incoming request (unused; required by the handler signature).
         exc: The raised HTTPException.
 
     Returns:
@@ -48,12 +48,12 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
+    _request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     """Format validation errors into standard Mai Ru error response shape.
 
     Args:
-        request: The incoming request.
+        _request: The incoming request (unused; required by the handler signature).
         exc: The raised RequestValidationError.
 
     Returns:

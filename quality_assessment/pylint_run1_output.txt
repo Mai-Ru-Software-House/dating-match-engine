@@ -1,0 +1,62 @@
+************* Module app.main
+app/main.py:24:33: W0613: Unused argument 'request' (unused-argument)
+app/main.py:51:4: W0613: Unused argument 'request' (unused-argument)
+************* Module app.scoring.match
+app/scoring/match.py:69:0: R0913: Too many arguments (12/5) (too-many-arguments)
+app/scoring/match.py:69:0: R0917: Too many positional arguments (12/5) (too-many-positional-arguments)
+app/scoring/match.py:69:0: R0914: Too many local variables (18/15) (too-many-locals)
+************* Module app.services.eligibility
+app/services/eligibility.py:48:0: C0325: Unnecessary parens after 'not' keyword (superfluous-parens)
+app/services/eligibility.py:50:0: C0325: Unnecessary parens after 'not' keyword (superfluous-parens)
+app/services/eligibility.py:11:0: R0911: Too many return statements (7/6) (too-many-return-statements)
+************* Module test_geo
+tests/test_geo.py:26:14: W1114: Positional arguments appear to be out of order (arguments-out-of-order)
+************* Module mock_backend
+scripts/mock_backend.py:1:0: R0801: Similar lines in 2 files
+==test_recommendations:[84:97]
+==test_versioned_routes:[21:44]
+    with patch(
+        "app.services.backend_client.BackendClient.get_matching_pool",
+        new_callable=AsyncMock,
+    ) as mock_get_pool:
+        mock_get_pool.return_value = (sample_user_a, [sample_candidate_b])
+
+        response = await async_client.get(
+            f"/internal/v1/recommendations?user_id={sample_user_a.user_id}&limit=5"
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data["candidates"]) == 1
+        assert data["candidates"][0]["user_id"] == "user_b" (duplicate-code)
+scripts/mock_backend.py:1:0: R0801: Similar lines in 2 files
+==test_search:[19:26]
+==test_versioned_routes:[61:68]
+    c1 = CandidateProfile(
+        user_id="c1",
+        age=22,
+        gender="G1",
+        latitude=13.7600,
+        longitude=100.5100,
+    ) (duplicate-code)
+scripts/mock_backend.py:1:0: R0801: Similar lines in 2 files
+==test_recommendations:[61:67]
+==test_versioned_routes:[47:53]
+        "user": sample_user_a.model_dump(mode="json"),
+        "candidates": [sample_candidate_b.model_dump(mode="json")],
+    }
+    response = await async_client.post("/internal/v1/recommendations", json=payload)
+    assert response.status_code == 200
+    data = response.json() (duplicate-code)
+scripts/mock_backend.py:1:0: R0801: Similar lines in 2 files
+==test_recommendations:[84:90]
+==test_versioned_routes:[88:95]
+    with patch(
+        "app.services.backend_client.BackendClient.get_matching_pool",
+        new_callable=AsyncMock,
+    ) as mock_get_pool:
+        mock_get_pool.return_value = (sample_user_a, [sample_candidate_b])
+ (duplicate-code)
+
+-----------------------------------
+Your code has been rated at 9.85/10
+
