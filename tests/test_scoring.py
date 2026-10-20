@@ -11,6 +11,7 @@ from app.scoring.age import calculate_age_score
 from app.scoring.distance import calculate_distance_score
 from app.scoring.match import (
     PairParticipant,
+    ScoringOptions,
     calculate_directional_score,
     calculate_mutual_match_score,
     compute_pair_match_score,
@@ -133,3 +134,19 @@ def test_compute_pair_match_score_bidirectional() -> None:
         distance_km=0.0,
     )
     assert score == 100.0
+
+
+def test_compute_pair_match_score_options_override() -> None:
+    """ScoringOptions overrides weights and rounding for the pair score."""
+    # User A accepts B's age; B rejects A's age, so only distance contributes to B -> A
+    user_a = PairParticipant(age=25, age_min=20, age_max=30, radius_km=10.0)
+    user_b = PairParticipant(age=26, age_min=40, age_max=50, radius_km=10.0)
+    default = compute_pair_match_score(user_a, user_b, distance_km=0.0)
+    distance_only = compute_pair_match_score(
+        user_a,
+        user_b,
+        distance_km=0.0,
+        options=ScoringOptions(w_age=0.0, w_distance=1.0, round_decimals=0),
+    )
+    assert default < 100.0
+    assert distance_only == 100.0

@@ -14,16 +14,10 @@ from app.models.profile import CandidateProfile
 @pytest.mark.asyncio
 async def test_search_candidates_direct_payload(
     async_client: httpx.AsyncClient,
+    sample_candidate_c1: CandidateProfile,
 ) -> None:
     """POST /internal/v1/candidates/search with specification and direct pool."""
     # Candidates set up with distinct distances and matching characteristics
-    c1 = CandidateProfile(
-        user_id="c1",
-        age=22,
-        gender="G1",
-        latitude=13.7600,
-        longitude=100.5100,
-    )
     c2 = CandidateProfile(
         user_id="c2",
         age=24,
@@ -57,7 +51,7 @@ async def test_search_candidates_direct_payload(
         },
         "limit": 20,
         "candidates": [
-            c1.model_dump(mode="json"),
+            sample_candidate_c1.model_dump(mode="json"),
             c2.model_dump(mode="json"),
             c_out_of_age.model_dump(mode="json"),
             c_out_of_range.model_dump(mode="json"),
@@ -81,20 +75,14 @@ async def test_search_candidates_direct_payload(
 @pytest.mark.asyncio
 async def test_search_candidates_backend_fallback(
     async_client: httpx.AsyncClient,
+    sample_candidate_c1: CandidateProfile,
 ) -> None:
     """When candidates are omitted in body, fetch from backend via /internal/v1."""
-    c1 = CandidateProfile(
-        user_id="c1",
-        age=22,
-        gender="G1",
-        latitude=13.7600,
-        longitude=100.5100,
-    )
     with patch(
         "app.services.backend_client.BackendClient.get_candidates",
         new_callable=AsyncMock,
     ) as mock_get_cands:
-        mock_get_cands.return_value = [c1]
+        mock_get_cands.return_value = [sample_candidate_c1]
 
         payload = {
             "age_min": 20,
