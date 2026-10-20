@@ -8,7 +8,7 @@ import logging
 from app.models.profile import CandidateProfile, UserMatchingProfile
 from app.models.request import DEFAULT_PAGE_LIMIT
 from app.models.response import RecommendationResponse, RecommendedCandidate
-from app.scoring.match import compute_pair_match_score
+from app.scoring.match import PairParticipant, compute_pair_match_score
 from app.services.backend_client import BackendClient
 from app.services.eligibility import is_mutually_eligible
 
@@ -59,14 +59,18 @@ class MatchingService:
             pref_b = candidate.target_preference
 
             score = compute_pair_match_score(
-                age_a=user.age,
-                age_min_a=pref_a.age_min,
-                age_max_a=pref_a.age_max,
-                radius_a=pref_a.radius_km,
-                age_b=candidate.age,
-                age_min_b=pref_b.age_min,
-                age_max_b=pref_b.age_max,
-                radius_b=pref_b.radius_km,
+                user_a=PairParticipant(
+                    age=user.age,
+                    age_min=pref_a.age_min,
+                    age_max=pref_a.age_max,
+                    radius_km=pref_a.radius_km,
+                ),
+                user_b=PairParticipant(
+                    age=candidate.age,
+                    age_min=pref_b.age_min,
+                    age_max=pref_b.age_max,
+                    radius_km=pref_b.radius_km,
+                ),
                 distance_km=distance,
             )
 

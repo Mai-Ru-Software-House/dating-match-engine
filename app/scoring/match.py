@@ -4,10 +4,43 @@ and final geometric mean mutual match scores.
 """
 
 import math
+from dataclasses import dataclass
 
 from app.config import get_settings
 from app.scoring.age import calculate_age_score
 from app.scoring.distance import calculate_distance_score
+
+
+@dataclass(frozen=True)
+class PairParticipant:
+    """Age and search preferences of one side of a candidate pair.
+
+    Attributes:
+        age: Age of the participant.
+        age_min: Minimum preferred age of the participant.
+        age_max: Maximum preferred age of the participant.
+        radius_km: Maximum search radius of the participant in km.
+    """
+
+    age: int
+    age_min: int
+    age_max: int
+    radius_km: float
+
+
+@dataclass(frozen=True)
+class ScoringOptions:
+    """Optional overrides for pair scoring; None falls back to settings.
+
+    Attributes:
+        w_age: Optional custom age weight.
+        w_distance: Optional custom distance weight.
+        round_decimals: Optional custom rounding decimal places.
+    """
+
+    w_age: float | None = None
+    w_distance: float | None = None
+    round_decimals: int | None = None
 
 
 def calculate_directional_score(
@@ -66,75 +99,64 @@ def calculate_mutual_match_score(
     return round(score, decimals)
 
 
-def compute_pair_match_score(
-    age_a: int,
-    age_min_a: int,
-    age_max_a: int,
-    radius_a: float,
-    age_b: int,
-    age_min_b: int,
-    age_max_b: int,
-    radius_b: float,
+def _score_direction(
+    viewer: PairParticipant,
+    candidate: PairParticipant,
     distance_km: float,
-    w_age: float | None = None,
-    w_distance: float | None = None,
-    round_decimals: int | None = None,
+    options: ScoringOptions,
+) -> float:
+    """Calculate directional compatibility of a candidate as seen by a viewer.
+
+    Args:
+        viewer: Participant whose age range and radius are being applied.
+        candidate: Participant being evaluated by the viewer.
+        distance_km: Geographic distance between the two participants in km.
+        options: Weight overrides for the directional score.
+
+    Returns:
+        Weighted directional compatibility score from viewer to candidate.
+    """
+    age_score = calculate_age_score(
+        candidate_age=candidate.age,
+        age_min=viewer.age_min,
+        age_max=viewer.age_max,
+    )
+    distance_score = calculate_distance_score(
+        distance_km=distance_km,
+        radius_km=viewer.radius_km,
+    )
+    return calculate_directional_score(
+        age_score=age_score,
+        distance_score=distance_score,
+        w_age=options.w_age,
+        w_distance=options.w_distance,
+    )
+
+
+def compute_pair_match_score(
+    user_a: PairParticipant,
+    user_b: PairParticipant,
+    distance_km: float,
+    options: ScoringOptions | None = None,
 ) -> float:
     """Calculate complete bidirectional mutual match score for a candidate pair.
 
     Args:
-        age_a: Age of requesting user A.
-        age_min_a: Minimum preferred age of user A.
-        age_max_a: Maximum preferred age of user A.
-        radius_a: Maximum search radius of user A in km.
-        age_b: Age of candidate B.
-        age_min_b: Minimum preferred age of candidate B.
-        age_max_b: Maximum preferred age of candidate B.
-        radius_b: Maximum search radius of candidate B in km.
+        user_a: Requesting user A.
+        user_b: Candidate B.
         distance_km: Geographic distance between users in km.
-        w_age: Optional custom age weight.
-        w_distance: Optional custom distance weight.
-        round_decimals: Optional custom rounding decimal places.
+        options: Optional weight and rounding overrides.
 
     Returns:
         Final mutual match score (0-100).
     """
-    # Direction A -> B
-    age_score_a_to_b = calculate_age_score(
-        candidate_age=age_b,
-        age_min=age_min_a,
-        age_max=age_max_a,
-    )
-    dist_score_a_to_b = calculate_distance_score(
-        distance_km=distance_km,
-        radius_km=radius_a,
-    )
-    c_a_b = calculate_directional_score(
-        age_score=age_score_a_to_b,
-        distance_score=dist_score_a_to_b,
-        w_age=w_age,
-        w_distance=w_distance,
-    )
+    options = options or ScoringOptions()
 
-    # Direction B -> A
-    age_score_b_to_a = calculate_age_score(
-        candidate_age=age_a,
-        age_min=age_min_b,
-        age_max=age_max_b,
-    )
-    dist_score_b_to_a = calculate_distance_score(
-        distance_km=distance_km,
-        radius_km=radius_b,
-    )
-    c_b_a = calculate_directional_score(
-        age_score=age_score_b_to_a,
-        distance_score=dist_score_b_to_a,
-        w_age=w_age,
-        w_distance=w_distance,
-    )
+    c_a_b = _score_direction(user_a, user_b, distance_km, options)
+    c_b_a = _score_direction(user_b, user_a, distance_km, options)
 
     return calculate_mutual_match_score(
         c_a_b=c_a_b,
         c_b_a=c_b_a,
-        round_decimals=round_decimals,
+        round_decimals=options.round_decimals,
     )

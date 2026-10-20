@@ -10,6 +10,7 @@ import pytest
 from app.scoring.age import calculate_age_score
 from app.scoring.distance import calculate_distance_score
 from app.scoring.match import (
+    PairParticipant,
     calculate_directional_score,
     calculate_mutual_match_score,
     compute_pair_match_score,
@@ -125,15 +126,10 @@ def test_mutual_score_zero_match() -> None:
 def test_compute_pair_match_score_bidirectional() -> None:
     """End-to-end pair scoring calculates both directions properly."""
     # When both users are identical in age midpoints and distance is 0 km
+    participant = PairParticipant(age=25, age_min=20, age_max=30, radius_km=15.0)
     score = compute_pair_match_score(
-        age_a=25,
-        age_min_a=20,
-        age_max_a=30,
-        radius_a=15.0,
-        age_b=25,
-        age_min_b=20,
-        age_max_b=30,
-        radius_b=15.0,
+        user_a=participant,
+        user_b=participant,
         distance_km=0.0,
     )
     assert score == 100.0
