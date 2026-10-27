@@ -10,3 +10,9 @@ __pycache__
 htmlcov
 .env
 tests
+.github
+.ruff_cache
+.env.example
+docs
+scripts
+quality_assessment
