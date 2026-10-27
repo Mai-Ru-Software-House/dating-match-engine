@@ -285,3 +285,23 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 # Terminal 3: Query recommendations end-to-end
 curl -s "http://localhost:8000/internal/v1/recommendations?userId=usr_001&limit=5" | jq
 ```
+
+---
+
+## 8. Releases and Container Images
+
+The GitHub Actions workflow `.github/workflows/package.yml` runs ruff and pytest, then builds the image and pushes it to `ghcr.io/mai-ru-software-house/dating-match-engine`:
+
+| Trigger | Image tags pushed |
+|---|---|
+| Push to `main` | commit SHA, `dev` |
+| Push of a git tag `vX.Y.Z` | commit SHA, `X.Y.Z` |
+| Pull request | none (the image is built to check the Dockerfile) |
+| Push to `feat/**` | none (only the tests run) |
+
+To cut a release:
+
+1. Set `version` in `pyproject.toml` to `X.Y.Z` and merge it to `main`.
+2. Tag that commit and push the tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+The workflow fails the tag build if the tag and the `pyproject.toml` version differ. Production deployments (`dating-infra`) use the `X.Y.Z` tag, never `dev`.
